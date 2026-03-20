@@ -1,6 +1,6 @@
 # Persistent Claude Code Channels
 
-Run [Claude Code](https://claude.com/claude-code) channel plugins (Telegram, Discord) as persistent background services using tmux.
+Run [Claude Code](https://claude.com/claude-code) channel plugins (Telegram, Discord) as persistent background services using tmux. Supports [PAI](https://github.com/danielmiessler/PAI) for enhanced agent context.
 
 Each channel gets its own Claude Code session with a real TTY — attachable for live debugging, detachable to run in the background.
 
