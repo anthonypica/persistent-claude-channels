@@ -11,7 +11,7 @@ Claude Code channels require an interactive session. When you close your termina
 ## Requirements
 
 - [Claude Code](https://claude.com/claude-code) v2.1.80+ with channels support
-- [Bun](https://bun.sh) or [Node.js](https://nodejs.org) v22+ (v18+ with `--experimental-strip-types`)
+- [Bun](https://bun.sh) or [Node.js](https://nodejs.org) v23.6+ (v22.6+ with `--experimental-strip-types`)
 - [tmux](https://github.com/tmux/tmux) (`brew install tmux` on macOS, `apt install tmux` on Linux)
 - Channel plugins installed in Claude Code:
   ```
@@ -24,9 +24,9 @@ Claude Code channels require an interactive session. When you close your termina
 This is a standalone tool — it does **not** need to be inside `~/.claude/` or any Claude-managed directory. Clone it wherever you keep tools (the setup wizard creates an alias pointing here, so don't move it after):
 
 ```bash
-cd ~/.local/share  # or anywhere you like
-git clone https://github.com/YOURUSERNAME/persistent-claude-code-channels.git
-cd persistent-claude-code-channels
+cd ~/tools  # or wherever you keep tools
+git clone https://github.com/anthonypica/persistent-claude-channels.git
+cd persistent-claude-channels
 ```
 
 Run the setup wizard:
@@ -35,7 +35,10 @@ Run the setup wizard:
 # With Bun
 bun pcc.ts init
 
-# With Node.js
+# With Node.js v23.6+
+node pcc.ts init
+
+# With Node.js v22.6–23.5
 node --experimental-strip-types pcc.ts init
 ```
 

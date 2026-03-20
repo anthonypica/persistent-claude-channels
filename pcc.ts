@@ -186,26 +186,32 @@ async function cmdInit() {
   const autoAcceptPermissions = permsAnswer.toLowerCase().startsWith("y");
 
   // PAI integration
-  const paiAnswer = await ask("\nEnable PAI integration? (y/n)", "n");
+  const paiAnswer = await ask("\nRun as PAI? Press Enter to skip if unsure (y/n)", "n");
   const paiEnabled = paiAnswer.toLowerCase().startsWith("y");
   let paiScript: string | undefined;
   if (paiEnabled) {
-    paiScript = await ask("  Path to pai.ts", join(homedir(), ".claude", "PAI", "Tools", "pai.ts"));
-    if (!existsSync(paiScript)) {
-      console.error(`  Warning: ${paiScript} not found`);
+    const defaultPath = join(homedir(), ".claude", "PAI", "Tools", "pai.ts");
+    if (existsSync(defaultPath)) {
+      paiScript = defaultPath;
+      console.log(`  Found pai.ts at ${defaultPath}`);
+    } else {
+      paiScript = await ask("  pai.ts not found at default location. Path to pai.ts");
+      if (!paiScript || !existsSync(paiScript)) {
+        console.error(`  Warning: ${paiScript || "no path"} not found — PAI disabled`);
+        paiScript = undefined;
+      }
     }
   }
 
-  // Working directory — where claude sessions will run from.
-  // Should be a directory you've already run claude in (to avoid the workspace trust prompt).
-  const defaultDir = paiEnabled ? join(homedir(), ".claude") : homedir();
-  const workingDirectory = await ask("\nWorking directory for channel sessions", defaultDir);
+  // Working directory — default to ~/.claude for PAI users, $HOME otherwise.
+  // Can be changed later in config.json if needed.
+  const workingDirectory = paiEnabled ? join(homedir(), ".claude") : homedir();
 
   // Alias — comes after PAI so the user's PAI name is fresh in mind
   if (paiEnabled) {
-    console.log("\n  Tip: Use your PAI assistant's name as the command (e.g. \"claire\")");
+    console.log("\n  Tip: Use your agent's name as the command (e.g. \"jarvis up\")");
   }
-  const alias = await ask("\nCommand alias", "pcc");
+  const alias = await ask("\nCommand alias (press Enter to use \"pcc\")", "pcc");
 
   const config: Config = {
     channels,
@@ -226,9 +232,22 @@ async function cmdInit() {
     : join(homedir(), ".bashrc");
 
   const scriptPath = join(__dirname, "pcc.ts");
-  // Detect runtime: prefer bun if available, fall back to node with TypeScript support
+  // Detect runtime: prefer bun if available, fall back to node
   const hasBun = run(["which", "bun"]).exitCode === 0;
-  const runtime = hasBun ? "bun" : "node --experimental-strip-types";
+  let runtime = "node --experimental-strip-types";
+  if (hasBun) {
+    runtime = "bun";
+  } else {
+    // Node v23.6+ supports .ts natively without flags
+    const nodeVer = run(["node", "--version"]).stdout?.toString().trim() || "";
+    const match = nodeVer.match(/^v(\d+)\.(\d+)/);
+    if (match) {
+      const [, major, minor] = match.map(Number);
+      if (major > 23 || (major === 23 && minor >= 6)) {
+        runtime = "node";
+      }
+    }
+  }
   const aliasLine = `alias ${alias}='${runtime} ${scriptPath}'`;
   const marker = "# persistent-claude-code-channels";
 
@@ -457,7 +476,7 @@ CHANNELS:
 
 REQUIREMENTS:
   - Claude Code (v2.1.80+)
-  - Bun or Node.js (v22+)
+  - Bun or Node.js (v23.6+, or v22.6+ with --experimental-strip-types)
   - tmux
   - Channel plugins installed in Claude Code`);
     if (command) {
