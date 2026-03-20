@@ -201,10 +201,7 @@ async function cmdInit() {
   const workingDirectory = paiEnabled ? join(homedir(), ".claude") : homedir();
 
   // Alias — comes after PAI so the user's PAI name is fresh in mind
-  const aliasHint = paiEnabled
-    ? "Command alias — e.g. your agent's name like \"jarvis\" (Enter for \"pcc\")"
-    : "Command alias (Enter for \"pcc\")";
-  const alias = await ask(`\n${aliasHint}`, "pcc");
+  const alias = await ask("\nCommand alias — e.g. your agent's name like \"jarvis\" (Enter for \"pcc\")", "pcc");
 
   const config: Config = {
     channels,
