@@ -1,0 +1,25 @@
+{
+  "name": "persistent-claude-code-channels",
+  "version": "1.0.0",
+  "description": "Run Claude Code channel plugins (Telegram, Discord) as persistent background services with tmux",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pcc": "./pcc.ts"
+  },
+  "scripts": {
+    "start": "bun run pcc.ts"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "claude-code",
+    "channels",
+    "telegram",
+    "discord",
+    "tmux",
+    "persistent",
+    "background"
+  ]
+}
