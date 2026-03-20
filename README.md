@@ -117,7 +117,7 @@ If you use [PAI](https://github.com/danielmiessler/PAI), enable it during `pcc i
 - Claude Code's TUI may capture keystrokes. Try from another terminal: `tmux detach-client -t pcc-telegram`
 
 **tmux not found:**
-- Install with `brew install tmux` (macOS) or your package manager
+- Install with `brew install tmux` (macOS) or `apt install tmux` (Linux)
 
 ## License
 
