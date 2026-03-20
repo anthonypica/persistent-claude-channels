@@ -190,16 +190,9 @@ async function cmdInit() {
   const paiEnabled = paiAnswer.toLowerCase().startsWith("y");
   let paiScript: string | undefined;
   if (paiEnabled) {
-    const defaultPath = join(homedir(), ".claude", "PAI", "Tools", "pai.ts");
-    if (existsSync(defaultPath)) {
-      paiScript = defaultPath;
-      console.log(`  Found pai.ts at ${defaultPath}`);
-    } else {
-      paiScript = await ask("  pai.ts not found at default location. Path to pai.ts");
-      if (!paiScript || !existsSync(paiScript)) {
-        console.error(`  Warning: ${paiScript || "no path"} not found — PAI disabled`);
-        paiScript = undefined;
-      }
+    paiScript = await ask("  Path to pai.ts", join(homedir(), ".claude", "PAI", "Tools", "pai.ts"));
+    if (!existsSync(paiScript)) {
+      console.error(`  Warning: ${paiScript} not found`);
     }
   }
 
@@ -208,10 +201,10 @@ async function cmdInit() {
   const workingDirectory = paiEnabled ? join(homedir(), ".claude") : homedir();
 
   // Alias — comes after PAI so the user's PAI name is fresh in mind
-  if (paiEnabled) {
-    console.log("\n  Tip: Use your agent's name as the command (e.g. \"jarvis up\")");
-  }
-  const alias = await ask("\nCommand alias (press Enter to use \"pcc\")", "pcc");
+  const aliasHint = paiEnabled
+    ? "Command alias — e.g. your agent's name like \"jarvis\" (Enter for \"pcc\")"
+    : "Command alias (Enter for \"pcc\")";
+  const alias = await ask(`\n${aliasHint}`, "pcc");
 
   const config: Config = {
     channels,
