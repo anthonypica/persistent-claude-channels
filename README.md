@@ -11,8 +11,8 @@ Claude Code channels require an interactive session. When you close your termina
 ## Requirements
 
 - [Claude Code](https://claude.com/claude-code) v2.1.80+ with channels support
-- [Bun](https://bun.sh) runtime
-- [tmux](https://github.com/tmux/tmux) (`brew install tmux`)
+- [Bun](https://bun.sh) or [Node.js](https://nodejs.org) v22+ (v18+ with `--experimental-strip-types`)
+- [tmux](https://github.com/tmux/tmux) (`brew install tmux` on macOS, `apt install tmux` on Linux)
 - Channel plugins installed in Claude Code:
   ```
   /plugin install telegram@claude-plugins-official
@@ -32,7 +32,11 @@ cd persistent-claude-code-channels
 Run the setup wizard:
 
 ```bash
+# With Bun
 bun pcc.ts init
+
+# With Node.js
+node --experimental-strip-types pcc.ts init
 ```
 
 This will:

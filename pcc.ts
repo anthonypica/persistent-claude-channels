@@ -1,10 +1,12 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S node --experimental-strip-types
 /**
  * pcc - Persistent Claude Code Channels
  *
  * Runs Claude Code channel plugins (Telegram, Discord) as persistent
  * background services using tmux. Each channel gets its own Claude Code
  * session with a real TTY, attachable for debugging.
+ *
+ * Compatible with Node.js (v18+) and Bun.
  *
  * Usage:
  *   pcc init              Interactive setup wizard
@@ -15,11 +17,26 @@
  *   pcc logs <channel>    Tail a channel's log file
  */
 
-import { spawnSync } from "bun";
+import { spawnSync } from "child_process";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { homedir, platform } from "os";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { createInterface } from "readline";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Wrapper around child_process.spawnSync for consistent API.
+// Node's spawnSync takes (cmd, args, opts) not ([cmd, ...args], opts).
+// Normalizes result to have both .exitCode and .status for compatibility.
+function run(args: string[], opts?: { env?: Record<string, string | undefined>; stdio?: any }) {
+  const [cmd, ...rest] = args;
+  const result = spawnSync(cmd, rest, opts as any);
+  return {
+    ...result,
+    exitCode: result.status,
+  };
+}
 
 // ============================================================================
 // Configuration
@@ -85,7 +102,7 @@ function findTmux(): string | null {
   for (const p of paths) {
     if (existsSync(p)) return p;
   }
-  const which = spawnSync(["which", "tmux"]);
+  const which = run(["which", "tmux"]);
   if (which.exitCode === 0) return which.stdout.toString().trim();
   return null;
 }
@@ -100,7 +117,7 @@ function requireTmux(): string {
 }
 
 function requireClaude(): void {
-  const result = spawnSync(["which", "claude"]);
+  const result = run(["which", "claude"]);
   if (result.exitCode !== 0) {
     console.error("Error: claude not found. Install Claude Code: https://claude.com/claude-code");
     process.exit(1);
@@ -114,7 +131,7 @@ function sessionName(channel: string): string {
 }
 
 function hasSession(tmux: string, session: string): boolean {
-  return spawnSync([tmux, "has-session", "-t", session]).exitCode === 0;
+  return run([tmux, "has-session", "-t", session]).exitCode === 0;
 }
 
 function log(message: string, emoji = "") {
@@ -208,8 +225,11 @@ async function cmdInit() {
     ? join(homedir(), ".zshrc")
     : join(homedir(), ".bashrc");
 
-  const scriptPath = join(import.meta.dir, "pcc.ts");
-  const aliasLine = `alias ${alias}='bun ${scriptPath}'`;
+  const scriptPath = join(__dirname, "pcc.ts");
+  // Detect runtime: prefer bun if available, fall back to node with TypeScript support
+  const hasBun = run(["which", "bun"]).exitCode === 0;
+  const runtime = hasBun ? "bun" : "node --experimental-strip-types";
+  const aliasLine = `alias ${alias}='${runtime} ${scriptPath}'`;
   const marker = "# persistent-claude-code-channels";
 
   if (existsSync(rcFile)) {
@@ -270,7 +290,7 @@ function cmdUp() {
     const logPath = join(LOG_DIR, `pcc-${channel}.log`);
     const cwd = config.workingDirectory || homedir();
 
-    const result = spawnSync([
+    const result = run([
       tmux, "new-session", "-d", "-s", session,
       "-x", "200", "-y", "50",
       "-c", cwd,
@@ -284,7 +304,7 @@ function cmdUp() {
     });
 
     if (result.exitCode !== 0) {
-      const err = result.stderr.toString().trim();
+      const err = result.stderr?.toString().trim() || "";
       log(`Failed to start ${channel}: ${err}`, "❌");
       continue;
     }
@@ -293,12 +313,12 @@ function cmdUp() {
     // The prompt defaults to "1. No, exit" — send Down arrow to select
     // "2. Yes, I accept", then Enter to confirm.
     if (config.autoAcceptPermissions) {
-      spawnSync(["bash", "-c",
+      run(["bash", "-c",
         `(sleep 3 && ${tmux} send-keys -t ${session} Down Enter) &`]);
     }
 
     // Pipe tmux output to log file
-    spawnSync(["bash", "-c",
+    run(["bash", "-c",
       `(${tmux} pipe-pane -t ${session} -o "cat >> ${logPath}") 2>/dev/null`]);
 
     log(`${channel} started (tmux: ${session})`, "✅");
@@ -317,7 +337,7 @@ function cmdDown() {
       continue;
     }
 
-    spawnSync([tmux, "kill-session", "-t", session]);
+    run([tmux, "kill-session", "-t", session]);
     log(`${channel} stopped`, "✅");
   }
 }
@@ -360,8 +380,8 @@ function cmdAttach(channel?: string) {
     process.exit(1);
   }
 
-  const result = spawnSync([tmux, "attach-session", "-t", session], {
-    stdio: ["inherit", "inherit", "inherit"],
+  const result = run([tmux, "attach-session", "-t", session], {
+    stdio: "inherit",
   });
   process.exit(result.exitCode ?? 0);
 }
@@ -385,8 +405,8 @@ function cmdLogs(channel?: string) {
     process.exit(1);
   }
 
-  const result = spawnSync(["tail", "-f", logPath], {
-    stdio: ["inherit", "inherit", "inherit"],
+  const result = run(["tail", "-f", logPath], {
+    stdio: "inherit",
   });
   process.exit(result.exitCode ?? 0);
 }
@@ -437,8 +457,8 @@ CHANNELS:
 
 REQUIREMENTS:
   - Claude Code (v2.1.80+)
-  - Bun (bun.sh)
-  - tmux (brew install tmux)
+  - Bun or Node.js (v22+)
+  - tmux
   - Channel plugins installed in Claude Code`);
     if (command) {
       console.error(`\nUnknown command: ${command}`);
